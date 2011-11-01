@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-var pg = require("pg"), async = require("async");
+var pg = require("pg"),
+    async = require("async");
 
 exports.database = function(settings) {
     this.settings = settings;
@@ -23,7 +24,7 @@ exports.database = function(settings) {
 
     if (this.settings.user != null) {
         connString += this.settings.user;
-        if (this.settings.password != null) {
+        if (this.settings.password) {
             connString += ":" + this.settings.password;
         }
         connString += "@";
@@ -33,7 +34,7 @@ exports.database = function(settings) {
         connString += this.settings.host;
     }
 
-    if (this.settings.port != null) {
+    if (this.settings.port) {
         connString += ":" + this.settings.port;
     }
 
@@ -47,24 +48,25 @@ exports.database = function(settings) {
 
     this.db = new pg.Client(connString);
     this.db.connect();
-
 };
 
 exports.database.prototype.init = function(callback) {
     var testTableExists = "SELECT 1 as exists FROM pg_tables WHERE tablename = 'store'", createTable = 'CREATE TABLE store (' +
         '"key" character varying(100) NOT NULL, ' +
         '"value" text NOT NULL, ' +
-        'CONSTRAINT store_pkey PRIMARY KEY (key))', createFunc = "CREATE OR REPLACE FUNCTION ueberdb_insert_or_update(character varying, text) " +
-        "RETURNS void AS $$ " +
-        "BEGIN " +
-        "  IF EXISTS( SELECT * FROM store WHERE key = $1 ) THEN " +
-        "    UPDATE store SET value = $2 WHERE key = $1; " +
-        "  ELSE " +
-        "    INSERT INTO store(key,value) VALUES( $1, $2 ); " +
-        "  END IF; " +
-        "  RETURN; " +
-        "END; " +
-        "$$ LANGUAGE plpgsql;", _this = this;
+        'CONSTRAINT store_pkey PRIMARY KEY (key))',
+        createFunc = "CREATE OR REPLACE FUNCTION ueberdb_insert_or_update(character varying, text) " +
+            "RETURNS void AS $$ " +
+            "BEGIN " +
+            "  IF EXISTS( SELECT * FROM store WHERE key = $1 ) THEN " +
+            "    UPDATE store SET value = $2 WHERE key = $1; " +
+            "  ELSE " +
+            "    INSERT INTO store(key,value) VALUES( $1, $2 ); " +
+            "  END IF; " +
+            "  RETURN; " +
+            "END; " +
+            "$$ LANGUAGE plpgsql;",
+        _this = this;
 
     this.db.query(createFunc, []);
 
@@ -101,20 +103,26 @@ exports.database.prototype.remove = function(key, callback) {
 };
 
 exports.database.prototype.doBulk = function(bulk, callback) {
-    var _this = this, replaceVALs = [], removeSQL = "DELETE FROM store WHERE key IN (", removeVALs = [], removeCount = 0, i;
+    var _this = this,
+        replaceVALs = [],
+        removeSQL = "DELETE FROM store WHERE key IN (",
+        removeVALs = [],
+        removeCount = 0, i;
 
     for (i in bulk) {
-        if (bulk[i].type === "set") {
-            replaceVALs.push([bulk[i].key, bulk[i].value]);
-        }
-        else if (bulk[i].type === "remove") {
-            if (removeCount) {
-                removeSQL += ",";
+        if (bulk.hasOwnProperty(i)) {
+            if (bulk[i].type === "set") {
+                replaceVALs.push([bulk[i].key, bulk[i].value]);
             }
-            removeCount += 1;
+            else if (bulk[i].type === "remove") {
+                if (removeCount) {
+                    removeSQL += ",";
+                }
+                removeCount += 1;
 
-            removeSQL += "$" + removeCount;
-            removeVALs.push(bulk[i].key);
+                removeSQL += "$" + removeCount;
+                removeVALs.push(bulk[i].key);
+            }
         }
     }
 

@@ -22,7 +22,7 @@ exports.database = function(settings) {
 
     var connString = "tcp://";
 
-    if (this.settings.user != null) {
+    if (this.settings.user) {
         connString += this.settings.user;
         if (this.settings.password) {
             connString += ":" + this.settings.password;
@@ -30,7 +30,7 @@ exports.database = function(settings) {
         connString += "@";
     }
 
-    if (this.settings.host != null) {
+    if (this.settings.host) {
         connString += this.settings.host;
     }
 
@@ -38,7 +38,7 @@ exports.database = function(settings) {
         connString += ":" + this.settings.port;
     }
 
-    if (this.settings.database != null) {
+    if (this.settings.database) {
         connString += "/" + this.settings.database;
     }
 

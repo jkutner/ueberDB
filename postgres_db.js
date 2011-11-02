@@ -107,22 +107,21 @@ exports.database.prototype.doBulk = function(bulk, callback) {
         replaceVALs = [],
         removeSQL = "DELETE FROM store WHERE key IN (",
         removeVALs = [],
-        removeCount = 0, i;
+        removeCount = 0,
+        i, l;
 
-    for (i in bulk) {
-        if (bulk.hasOwnProperty(i)) {
-            if (bulk[i].type === "set") {
-                replaceVALs.push([bulk[i].key, bulk[i].value]);
+    for (i = 0, l = bulk.length; i < l; i++) {
+        if (bulk[i].type === "set") {
+            replaceVALs.push([bulk[i].key, bulk[i].value]);
+        }
+        else if (bulk[i].type === "remove") {
+            if (removeCount) {
+                removeSQL += ",";
             }
-            else if (bulk[i].type === "remove") {
-                if (removeCount) {
-                    removeSQL += ",";
-                }
-                removeCount += 1;
+            removeCount += 1;
 
-                removeSQL += "$" + removeCount;
-                removeVALs.push(bulk[i].key);
-            }
+            removeSQL += "$" + removeCount;
+            removeVALs.push(bulk[i].key);
         }
     }
 
@@ -130,19 +129,17 @@ exports.database.prototype.doBulk = function(bulk, callback) {
 
     async.parallel([
         function(callback) {
-            var v;
-            if (replaceVALs.length) {
-                for (v in replaceVALs) {
-                    if (replaceVALs.hasOwnProperty(v)) {
-                        _this.db.query("SELECT ueberdb_insert_or_update($1,$2)", replaceVALs[v], callback);
-                    }
+            var v, l;
+            if (replaceVALs) {
+                for (v = 0, l = replaceVALs.length; v < l; v++) {
+                    _this.db.query("SELECT ueberdb_insert_or_update($1,$2)", replaceVALs[v], callback);
                 }
             } else {
                 callback();
             }
         },
         function(callback) {
-            if (removeVALs.length) {
+            if (removeVALs) {
                 _this.db.query(removeSQL, removeVALs, callback);
             }
             else {

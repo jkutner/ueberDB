@@ -130,7 +130,7 @@ exports.database.prototype.doBulk = function(bulk, callback) {
     async.parallel([
         function(callback) {
             var v, l;
-            if (replaceVALs) {
+            if (replaceVALs.length) {
                 for (v = 0, l = replaceVALs.length; v < l; v++) {
                     _this.db.query("SELECT ueberdb_insert_or_update($1,$2)", replaceVALs[v], callback);
                 }
@@ -139,7 +139,7 @@ exports.database.prototype.doBulk = function(bulk, callback) {
             }
         },
         function(callback) {
-            if (removeVALs) {
+            if (removeVALs.length) {
                 _this.db.query(removeSQL, removeVALs, callback);
             }
             else {
